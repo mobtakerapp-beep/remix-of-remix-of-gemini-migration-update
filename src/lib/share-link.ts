@@ -1,4 +1,6 @@
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
+import lzString from "lz-string";
+
+const { compressToEncodedURIComponent, decompressFromEncodedURIComponent } = lzString;
 
 import type { LessonPackage } from "./lesson-types";
 
