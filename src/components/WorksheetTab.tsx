@@ -1,5 +1,5 @@
 import { Info, Printer } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import catImg from "@/assets/cat.png";
 import dogImg from "@/assets/dog.png";
@@ -8,9 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  DESIGNER_CREDIT_AR,
+  DESIGNER_CREDIT_EN,
+  getHideMascots,
+  setHideMascots,
+  subscribeHideMascots,
+} from "@/lib/display-prefs";
 import { useI18n, type Dict } from "@/lib/i18n";
 import { fmtNum, optionLetter, type LessonPackage } from "@/lib/lesson-types";
 import { exportNodeToPdf } from "@/lib/pdf-export";
+
 
 function McqItem({
   m,
