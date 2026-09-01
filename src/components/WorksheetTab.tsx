@@ -110,7 +110,15 @@ function FlashItem({
   );
 }
 
-function SheetHeader({ pkg, ar }: { pkg: LessonPackage; ar: boolean }) {
+function SheetHeader({
+  pkg,
+  ar,
+  hideMascots,
+}: {
+  pkg: LessonPackage;
+  ar: boolean;
+  hideMascots: boolean;
+}) {
   return (
     <header className="border-b-4 border-double border-primary px-10 pb-5 pt-8 print:px-0 print:pt-0">
       <div className="flex items-start justify-between gap-4">
@@ -124,11 +132,14 @@ function SheetHeader({ pkg, ar }: { pkg: LessonPackage; ar: boolean }) {
             {pkg.title}
           </h2>
         </div>
-        <div className="flex shrink-0 items-end gap-1">
-          <img src={catImg} alt="" className="sheet-mascot size-12" />
-          <img src={dogImg} alt="" className="sheet-mascot size-14" />
-        </div>
+        {!hideMascots && (
+          <div className="flex shrink-0 items-end gap-1">
+            <img src={catImg} alt="" className="sheet-mascot size-12" />
+            <img src={dogImg} alt="" className="sheet-mascot size-14" />
+          </div>
+        )}
       </div>
+
 
       <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3 print:grid-cols-3">
         <p className="rounded-xl border border-dashed border-primary/40 px-3 py-2">
