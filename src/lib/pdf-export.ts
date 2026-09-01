@@ -161,6 +161,43 @@ export async function exportNodeToPdf(
     }
   }
 
+  // Designer credit at the bottom of every page. Drawn from a canvas so
+  // Arabic text keeps its correct shaping (the PDF core fonts cannot).
+  if (credit) {
+    const dpi = 4; // px per mm
+    const heightMm = 5;
+    const c = document.createElement("canvas");
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      const fontPx = Math.round(heightMm * dpi * 0.72);
+      ctx.font = `600 ${fontPx}px "Cairo", "Tajawal", system-ui, sans-serif`;
+      const widthMm = Math.max(20, ctx.measureText(credit).width / dpi + 4);
+      c.width = Math.round(widthMm * dpi);
+      c.height = Math.round(heightMm * dpi);
+      const ctx2 = c.getContext("2d")!;
+      ctx2.fillStyle = "#ffffff";
+      ctx2.fillRect(0, 0, c.width, c.height);
+      ctx2.font = `600 ${fontPx}px "Cairo", "Tajawal", system-ui, sans-serif`;
+      ctx2.fillStyle = "#6b7280";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText(credit, c.width / 2, c.height / 2);
+      const dataUrl = c.toDataURL("image/png");
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page++) {
+        pdf.setPage(page);
+        pdf.addImage(
+          dataUrl,
+          "PNG",
+          (pageWidth - widthMm) / 2,
+          pageHeight - margin - heightMm,
+          widthMm,
+          heightMm,
+        );
+      }
+    }
+  }
 
   pdf.save(fileName);
 }
+
