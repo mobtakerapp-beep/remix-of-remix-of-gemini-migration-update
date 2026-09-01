@@ -43,6 +43,8 @@ export type LessonPackage = {
   mcqs: MCQ[];
   trueFalse: TrueFalse[];
   flashcards: Flashcard[];
+  /** Hide the cartoon mascots (older students / plain printing). */
+  hideMascots?: boolean;
 };
 
 export const emptyPackage: LessonPackage = {

@@ -1,5 +1,5 @@
 import { Check, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import catImg from "@/assets/cat.png";
 import dogImg from "@/assets/dog.png";
@@ -7,6 +7,7 @@ import partyImg from "@/assets/party.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { getHideMascots, subscribeHideMascots } from "@/lib/display-prefs";
 import { useI18n } from "@/lib/i18n";
 import { playClick, playCorrect, playWin, playWrong, setSoundEnabled } from "@/lib/sfx";
 import { fmtNum, optionLetter, type LessonPackage } from "@/lib/lesson-types";
@@ -37,6 +38,12 @@ export function PlayTab({
 }) {
   const { t } = useI18n();
   const dir = pkg.language === "ar" ? "rtl" : "ltr";
+  const [prefHide, setPrefHide] = useState(false);
+  useEffect(() => {
+    setPrefHide(getHideMascots());
+    return subscribeHideMascots(() => setPrefHide(getHideMascots()));
+  }, []);
+  const hideMascots = pkg.hideMascots === true || prefHide;
   const ar = pkg.language === "ar";
   const num = (n: number | string) => fmtNum(n, pkg.numerals);
 
@@ -120,14 +127,16 @@ export function PlayTab({
   if (finished) {
     return (
       <Card dir={dir} className="overflow-hidden p-10 text-center">
-        <img
-          src={partyImg}
-          alt=""
-          width={512}
-          height={512}
-          loading="lazy"
-          className="mx-auto size-48 animate-bounce-slow object-contain"
-        />
+        {!hideMascots && (
+          <img
+            src={partyImg}
+            alt=""
+            width={512}
+            height={512}
+            loading="lazy"
+            className="mx-auto size-48 animate-bounce-slow object-contain"
+          />
+        )}
         <h3 className="mt-4 text-3xl font-extrabold text-primary">{t.resultTitle}</h3>
         <p className="mt-2 text-lg text-muted-foreground">
           {t.resultSub} {num(score)} / {num(items.length)} {t.questionsWord}
@@ -143,14 +152,16 @@ export function PlayTab({
     <div dir={dir} className="space-y-4">
       <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center gap-3">
-          <img
-            src={index % 2 ? dogImg : catImg}
-            alt=""
-            width={512}
-            height={512}
-            loading="lazy"
-            className="size-12 animate-wiggle object-contain"
-          />
+          {!hideMascots && (
+            <img
+              src={index % 2 ? dogImg : catImg}
+              alt=""
+              width={512}
+              height={512}
+              loading="lazy"
+              className="size-12 animate-wiggle object-contain"
+            />
+          )}
           <div>
             <p className="text-sm text-muted-foreground">
               {t.question} {num(index + 1)} {t.of} {num(items.length)}
