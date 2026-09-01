@@ -1,16 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Gamepad2, Home, Loader2 } from "lucide-react";
+import { Gamepad2, Home, Loader2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import logoUrl from "@/assets/logo.png";
-import { PlayTab } from "@/components/PlayTab";
+import { PlayTab, type PlayResult } from "@/components/PlayTab";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
 import { useI18n } from "@/lib/i18n";
 import type { LessonPackage } from "@/lib/lesson-types";
 import { decodeLessonFromHash } from "@/lib/share-link";
-import { getSharedLesson } from "@/lib/shares.functions";
+import { getSharedLesson, submitShareResult } from "@/lib/shares.functions";
 
 export const Route = createFileRoute("/s/$token")({
   head: () => ({
@@ -37,8 +39,12 @@ function SharedLessonPage() {
   const { lang } = useI18n();
   const ar = lang === "ar";
   const load = useServerFn(getSharedLesson);
+  const submit = useServerFn(submitShareResult);
   const [pkg, setPkg] = useState<LessonPackage | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [name, setName] = useState("");
+  const [studentName, setStudentName] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -57,6 +63,22 @@ function SharedLessonPage() {
       }
     })();
   }, [load, token]);
+
+  const handleFinish = (result: PlayResult) => {
+    if (!studentName || sent) return;
+    setSent(true);
+    void submit({
+      data: {
+        token,
+        studentName,
+        score: result.score,
+        total: result.total,
+        answers: result.answers,
+      },
+    }).catch(() => {
+      /* the student still sees their score even if saving fails */
+    });
+  };
 
   return (
     <main className="min-h-screen blob-bg bg-background px-4 pb-16 pt-5">
@@ -96,23 +118,60 @@ function SharedLessonPage() {
         </Card>
       )}
 
-      {state === "ready" && pkg && (
+      {state === "ready" && pkg && !studentName && (
+        <Card
+          className="mx-auto mt-16 max-w-md rounded-3xl p-8 text-center"
+          dir={pkg.language === "ar" ? "rtl" : "ltr"}
+        >
+          <UserRound className="mx-auto size-10 text-primary" />
+          <h1 className="mt-3 font-display text-xl font-extrabold">{pkg.title}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {ar
+              ? "اكتب اسمك قبل بدء اللعب حتى يشوف معلّمك درجتك."
+              : "Enter your name before playing so your teacher can see your score."}
+          </p>
+          <form
+            className="mt-5 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = name.trim();
+              if (v.length >= 2) setStudentName(v.slice(0, 60));
+            }}
+          >
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={ar ? "اسم الطالب" : "Student name"}
+              maxLength={60}
+              autoFocus
+              className="text-center"
+            />
+            <Button
+              type="submit"
+              size="lg"
+              disabled={name.trim().length < 2}
+              className="w-full gradient-hero text-primary-foreground"
+            >
+              <Gamepad2 className="me-2 size-5" /> {ar ? "ابدأ اللعب" : "Start playing"}
+            </Button>
+          </form>
+        </Card>
+      )}
+
+      {state === "ready" && pkg && studentName && (
         <section className="mx-auto mt-6 max-w-4xl">
           <Card className="mb-5 rounded-3xl p-5" dir={pkg.language === "ar" ? "rtl" : "ltr"}>
             <h1 className="flex items-center gap-2 font-display text-xl font-extrabold sm:text-2xl">
               <Gamepad2 className="size-5 text-amber" /> {pkg.title}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-              {ar
-                ? "العب المسابقة مع معلّمك وزملائك — أجب عن الأسئلة واجمع النقاط!"
-                : "Play the quiz with your teacher and classmates — answer and collect points!"}
+              {ar ? `أهلاً ${studentName}! أجب عن الأسئلة واجمع النقاط.` : `Hi ${studentName}! Answer the questions and collect points.`}
             </p>
           </Card>
 
-          <PlayTab pkg={pkg} />
+          <PlayTab pkg={pkg} onFinish={handleFinish} />
         </section>
       )}
     </main>
   );
 }
-
