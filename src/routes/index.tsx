@@ -174,15 +174,11 @@ function Home() {
     try {
       // The lesson travels inside the link hash, so students open the game
       // instantly with no account and no lookup.
-      let token = "play";
-      try {
-        const res = await share({
-          data: { title: pkg.title || t.lessonTitle, package: pkg as never },
-        });
-        token = res.token;
-      } catch {
-        // Saving the copy is optional; the link still works.
-      }
+      // A real DB token is required so student results link back to this lesson.
+      const res = await share({
+        data: { title: pkg.title || t.lessonTitle, package: pkg as never },
+      });
+      const token = res.token;
       const { encodeLessonToHash } = await import("@/lib/share-link");
       const url = `${window.location.origin}/s/${token}#d=${encodeLessonToHash(pkg)}`;
       await navigator.clipboard.writeText(url);
