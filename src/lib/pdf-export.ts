@@ -4,7 +4,11 @@
  * block, so a page always starts at the beginning of a question / section
  * and nothing is sliced in half.
  */
-export async function exportNodeToPdf(node: HTMLElement, fileName: string) {
+export async function exportNodeToPdf(
+  node: HTMLElement,
+  fileName: string,
+  options?: { credit?: string },
+) {
   await Promise.all(
     Array.from(node.querySelectorAll("img")).map((image) =>
       image.complete
@@ -26,8 +30,11 @@ export async function exportNodeToPdf(node: HTMLElement, fileName: string) {
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 6;
+  const credit = options?.credit?.trim() || "";
+  const footerSpace = credit ? 9 : 0;
   const usableWidth = pageWidth - margin * 2;
-  const usableHeight = pageHeight - margin * 2;
+  const usableHeight = pageHeight - margin * 2 - footerSpace;
+
 
   // Render the sheet at true A4 content width (96dpi) so text fills the page
   // instead of being shrunk down from a wide desktop layout.
