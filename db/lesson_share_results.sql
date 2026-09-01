@@ -24,9 +24,7 @@ ALTER TABLE public.lesson_share_results ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can submit a result" ON public.lesson_share_results;
 CREATE POLICY "Anyone can submit a result"
 ON public.lesson_share_results FOR INSERT TO anon, authenticated
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.lesson_shares s WHERE s.token = share_token)
-);
+WITH CHECK (char_length(share_token) >= 6 AND char_length(student_name) BETWEEN 1 AND 60);
 
 -- Only the teacher who owns the shared lesson can read the results.
 DROP POLICY IF EXISTS "Share owners can read results" ON public.lesson_share_results;
