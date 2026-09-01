@@ -160,11 +160,13 @@ function Sheet({
   pkg,
   answerKey,
   teacher,
+  hideMascots,
   t,
 }: {
   pkg: LessonPackage;
   answerKey: boolean;
   teacher: string;
+  hideMascots: boolean;
   t: Dict;
 }) {
   const ar = pkg.language === "ar";
@@ -176,7 +178,8 @@ function Sheet({
       dir={dir}
       className="mx-auto w-full max-w-[820px] overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-[var(--shadow-soft)] print:max-w-none print:rounded-none print:border-0 print:shadow-none"
     >
-      <SheetHeader pkg={pkg} ar={ar} />
+      <SheetHeader pkg={pkg} ar={ar} hideMascots={hideMascots} />
+
 
       <div className="px-10 pb-10 print:px-0 print:pb-0">
         {pkg.mcqs.length > 0 && (
