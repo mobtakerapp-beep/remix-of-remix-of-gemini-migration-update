@@ -254,7 +254,10 @@ function Sheet({
         <footer className="mt-9 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
           <span>{ar ? "بالتوفيق يا أبطال! 🌟" : "Good luck, champions! 🌟"}</span>
           <span>{teacher ? `${t.preparedBy} ${teacher}` : ""}</span>
-          <img src={partyImg} alt="" className="sheet-mascot size-10" />
+          <span className="font-semibold text-primary">
+            {ar ? DESIGNER_CREDIT_AR : DESIGNER_CREDIT_EN}
+          </span>
+          {!hideMascots && <img src={partyImg} alt="" className="sheet-mascot size-10" />}
         </footer>
       </div>
     </div>
@@ -262,17 +265,30 @@ function Sheet({
 }
 
 export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [answerKey, setAnswerKey] = useState(false);
   const [teacher, setTeacher] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [hideMascots, setHide] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHide(getHideMascots());
+    return subscribeHideMascots(() => setHide(getHideMascots()));
+  }, []);
+
+  const toggleHide = (value: boolean) => {
+    setHide(value);
+    setHideMascots(value);
+  };
 
   const downloadPdf = async () => {
     if (!sheetRef.current) return;
     setExporting(true);
     try {
-      await exportNodeToPdf(sheetRef.current, `${pkg.title || "worksheet"}.pdf`);
+      await exportNodeToPdf(sheetRef.current, `${pkg.title || "worksheet"}.pdf`, {
+        credit: lang === "ar" ? DESIGNER_CREDIT_AR : DESIGNER_CREDIT_EN,
+      });
     } finally {
       setExporting(false);
     }
@@ -285,6 +301,12 @@ export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
           <div className="flex items-center gap-3">
             <Switch id="key" checked={answerKey} onCheckedChange={setAnswerKey} />
             <Label htmlFor="key">{t.showKey}</Label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch id="hide-mascots" checked={hideMascots} onCheckedChange={toggleHide} />
+            <Label htmlFor="hide-mascots">
+              {lang === "ar" ? "إخفاء الرسوم الكرتونية" : "Hide cartoon images"}
+            </Label>
           </div>
           <div className="min-w-56">
             <Label htmlFor="teacher-worksheet">{t.teacherName}</Label>
@@ -311,8 +333,15 @@ export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
       </p>
 
       <div ref={sheetRef} className="worksheet-export bg-card">
-        <Sheet pkg={pkg} answerKey={answerKey} teacher={teacher} t={t} />
+        <Sheet
+          pkg={pkg}
+          answerKey={answerKey}
+          teacher={teacher}
+          hideMascots={hideMascots}
+          t={t}
+        />
       </div>
     </div>
   );
+
 }
