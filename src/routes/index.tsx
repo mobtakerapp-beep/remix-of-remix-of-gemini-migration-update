@@ -183,8 +183,10 @@ function Home() {
       const url = `${window.location.origin}/s/${token}#d=${encodeLessonToHash(pkg)}`;
       await navigator.clipboard.writeText(url);
       toast.success(lang === "ar" ? "تم نسخ رابط المشاركة ✅" : "Share link copied ✅");
-    } catch {
-      toast.error(lang === "ar" ? "فشل إنشاء رابط المشاركة" : "Failed to create share link");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "";
+      if (/unauthorized|401/i.test(msg)) toast.error(t.signInRequired);
+      else toast.error(lang === "ar" ? "فشل إنشاء رابط المشاركة" : "Failed to create share link");
     } finally {
       setSharing(false);
     }
