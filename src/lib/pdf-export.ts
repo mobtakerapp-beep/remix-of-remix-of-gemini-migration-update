@@ -4,7 +4,11 @@
  * block, so a page always starts at the beginning of a question / section
  * and nothing is sliced in half.
  */
-export async function exportNodeToPdf(node: HTMLElement, fileName: string) {
+export async function exportNodeToPdf(
+  node: HTMLElement,
+  fileName: string,
+  options?: { credit?: string },
+) {
   await Promise.all(
     Array.from(node.querySelectorAll("img")).map((image) =>
       image.complete
@@ -26,8 +30,11 @@ export async function exportNodeToPdf(node: HTMLElement, fileName: string) {
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 6;
+  const credit = options?.credit?.trim() || "";
+  const footerSpace = credit ? 9 : 0;
   const usableWidth = pageWidth - margin * 2;
-  const usableHeight = pageHeight - margin * 2;
+  const usableHeight = pageHeight - margin * 2 - footerSpace;
+
 
   // Render the sheet at true A4 content width (96dpi) so text fills the page
   // instead of being shrunk down from a wide desktop layout.
@@ -154,6 +161,43 @@ export async function exportNodeToPdf(node: HTMLElement, fileName: string) {
     }
   }
 
+  // Designer credit at the bottom of every page. Drawn from a canvas so
+  // Arabic text keeps its correct shaping (the PDF core fonts cannot).
+  if (credit) {
+    const dpi = 4; // px per mm
+    const heightMm = 5;
+    const c = document.createElement("canvas");
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      const fontPx = Math.round(heightMm * dpi * 0.72);
+      ctx.font = `600 ${fontPx}px "Cairo", "Tajawal", system-ui, sans-serif`;
+      const widthMm = Math.max(20, ctx.measureText(credit).width / dpi + 4);
+      c.width = Math.round(widthMm * dpi);
+      c.height = Math.round(heightMm * dpi);
+      const ctx2 = c.getContext("2d")!;
+      ctx2.fillStyle = "#ffffff";
+      ctx2.fillRect(0, 0, c.width, c.height);
+      ctx2.font = `600 ${fontPx}px "Cairo", "Tajawal", system-ui, sans-serif`;
+      ctx2.fillStyle = "#6b7280";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText(credit, c.width / 2, c.height / 2);
+      const dataUrl = c.toDataURL("image/png");
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page++) {
+        pdf.setPage(page);
+        pdf.addImage(
+          dataUrl,
+          "PNG",
+          (pageWidth - widthMm) / 2,
+          pageHeight - margin - heightMm,
+          widthMm,
+          heightMm,
+        );
+      }
+    }
+  }
 
   pdf.save(fileName);
 }
+

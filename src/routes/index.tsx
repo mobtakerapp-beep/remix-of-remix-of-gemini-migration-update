@@ -40,6 +40,7 @@ import { AuthHeader } from "@/components/AuthHeader";
 import { InstallPWA } from "@/components/InstallPWA";
 import { generateLessonPackage } from "@/lib/lesson.functions";
 import { getLessonById, saveLesson } from "@/lib/lessons.functions";
+import { getHideMascots } from "@/lib/display-prefs";
 import { createShare } from "@/lib/shares.functions";
 import type { LessonPackage } from "@/lib/lesson-types";
 import { useGeneration } from "@/lib/subscription.functions";
@@ -176,11 +177,14 @@ function Home() {
       // instantly with no account and no lookup.
       // A real DB token is required so student results link back to this lesson.
       const res = await share({
-        data: { title: pkg.title || t.lessonTitle, package: pkg as never },
+        data: {
+          title: pkg.title || t.lessonTitle,
+          package: { ...pkg, hideMascots: getHideMascots() } as never,
+        },
       });
       const token = res.token;
       const { encodeLessonToHash } = await import("@/lib/share-link");
-      const url = `${window.location.origin}/s/${token}#d=${encodeLessonToHash(pkg)}`;
+      const url = `${window.location.origin}/s/${token}#d=${encodeLessonToHash({ ...pkg, hideMascots: getHideMascots() })}`;
       await navigator.clipboard.writeText(url);
       toast.success(lang === "ar" ? "تم نسخ رابط المشاركة ✅" : "Share link copied ✅");
     } catch (error) {

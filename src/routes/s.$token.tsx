@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
+import { DESIGNER_CREDIT_AR, DESIGNER_CREDIT_EN } from "@/lib/display-prefs";
 import { useI18n } from "@/lib/i18n";
 import type { LessonPackage } from "@/lib/lesson-types";
 import { decodeLessonFromHash } from "@/lib/share-link";
@@ -172,6 +173,10 @@ function SharedLessonPage() {
           <PlayTab pkg={pkg} onFinish={handleFinish} />
         </section>
       )}
+
+      <footer className="mx-auto mt-10 max-w-4xl text-center text-xs font-semibold text-muted-foreground">
+        {ar ? DESIGNER_CREDIT_AR : DESIGNER_CREDIT_EN}
+      </footer>
     </main>
   );
 }

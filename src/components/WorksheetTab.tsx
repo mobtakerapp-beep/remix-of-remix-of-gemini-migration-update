@@ -1,5 +1,5 @@
 import { Info, Printer } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import catImg from "@/assets/cat.png";
 import dogImg from "@/assets/dog.png";
@@ -8,9 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  DESIGNER_CREDIT_AR,
+  DESIGNER_CREDIT_EN,
+  getHideMascots,
+  setHideMascots,
+  subscribeHideMascots,
+} from "@/lib/display-prefs";
 import { useI18n, type Dict } from "@/lib/i18n";
 import { fmtNum, optionLetter, type LessonPackage } from "@/lib/lesson-types";
 import { exportNodeToPdf } from "@/lib/pdf-export";
+
 
 function McqItem({
   m,
@@ -102,7 +110,15 @@ function FlashItem({
   );
 }
 
-function SheetHeader({ pkg, ar }: { pkg: LessonPackage; ar: boolean }) {
+function SheetHeader({
+  pkg,
+  ar,
+  hideMascots,
+}: {
+  pkg: LessonPackage;
+  ar: boolean;
+  hideMascots: boolean;
+}) {
   return (
     <header className="border-b-4 border-double border-primary px-10 pb-5 pt-8 print:px-0 print:pt-0">
       <div className="flex items-start justify-between gap-4">
@@ -116,11 +132,14 @@ function SheetHeader({ pkg, ar }: { pkg: LessonPackage; ar: boolean }) {
             {pkg.title}
           </h2>
         </div>
-        <div className="flex shrink-0 items-end gap-1">
-          <img src={catImg} alt="" className="sheet-mascot size-12" />
-          <img src={dogImg} alt="" className="sheet-mascot size-14" />
-        </div>
+        {!hideMascots && (
+          <div className="flex shrink-0 items-end gap-1">
+            <img src={catImg} alt="" className="sheet-mascot size-12" />
+            <img src={dogImg} alt="" className="sheet-mascot size-14" />
+          </div>
+        )}
       </div>
+
 
       <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3 print:grid-cols-3">
         <p className="rounded-xl border border-dashed border-primary/40 px-3 py-2">
@@ -141,11 +160,13 @@ function Sheet({
   pkg,
   answerKey,
   teacher,
+  hideMascots,
   t,
 }: {
   pkg: LessonPackage;
   answerKey: boolean;
   teacher: string;
+  hideMascots: boolean;
   t: Dict;
 }) {
   const ar = pkg.language === "ar";
@@ -157,7 +178,8 @@ function Sheet({
       dir={dir}
       className="mx-auto w-full max-w-[820px] overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-[var(--shadow-soft)] print:max-w-none print:rounded-none print:border-0 print:shadow-none"
     >
-      <SheetHeader pkg={pkg} ar={ar} />
+      <SheetHeader pkg={pkg} ar={ar} hideMascots={hideMascots} />
+
 
       <div className="px-10 pb-10 print:px-0 print:pb-0">
         {pkg.mcqs.length > 0 && (
@@ -232,7 +254,10 @@ function Sheet({
         <footer className="mt-9 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
           <span>{ar ? "بالتوفيق يا أبطال! 🌟" : "Good luck, champions! 🌟"}</span>
           <span>{teacher ? `${t.preparedBy} ${teacher}` : ""}</span>
-          <img src={partyImg} alt="" className="sheet-mascot size-10" />
+          <span className="font-semibold text-primary">
+            {ar ? DESIGNER_CREDIT_AR : DESIGNER_CREDIT_EN}
+          </span>
+          {!hideMascots && <img src={partyImg} alt="" className="sheet-mascot size-10" />}
         </footer>
       </div>
     </div>
@@ -240,17 +265,30 @@ function Sheet({
 }
 
 export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [answerKey, setAnswerKey] = useState(false);
   const [teacher, setTeacher] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [hideMascots, setHide] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHide(getHideMascots());
+    return subscribeHideMascots(() => setHide(getHideMascots()));
+  }, []);
+
+  const toggleHide = (value: boolean) => {
+    setHide(value);
+    setHideMascots(value);
+  };
 
   const downloadPdf = async () => {
     if (!sheetRef.current) return;
     setExporting(true);
     try {
-      await exportNodeToPdf(sheetRef.current, `${pkg.title || "worksheet"}.pdf`);
+      await exportNodeToPdf(sheetRef.current, `${pkg.title || "worksheet"}.pdf`, {
+        credit: lang === "ar" ? DESIGNER_CREDIT_AR : DESIGNER_CREDIT_EN,
+      });
     } finally {
       setExporting(false);
     }
@@ -263,6 +301,12 @@ export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
           <div className="flex items-center gap-3">
             <Switch id="key" checked={answerKey} onCheckedChange={setAnswerKey} />
             <Label htmlFor="key">{t.showKey}</Label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch id="hide-mascots" checked={hideMascots} onCheckedChange={toggleHide} />
+            <Label htmlFor="hide-mascots">
+              {lang === "ar" ? "إخفاء الرسوم الكرتونية" : "Hide cartoon images"}
+            </Label>
           </div>
           <div className="min-w-56">
             <Label htmlFor="teacher-worksheet">{t.teacherName}</Label>
@@ -289,8 +333,15 @@ export function WorksheetTab({ pkg }: { pkg: LessonPackage }) {
       </p>
 
       <div ref={sheetRef} className="worksheet-export bg-card">
-        <Sheet pkg={pkg} answerKey={answerKey} teacher={teacher} t={t} />
+        <Sheet
+          pkg={pkg}
+          answerKey={answerKey}
+          teacher={teacher}
+          hideMascots={hideMascots}
+          t={t}
+        />
       </div>
     </div>
   );
+
 }
