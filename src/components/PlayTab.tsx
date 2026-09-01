@@ -1,5 +1,5 @@
 import { Check, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import catImg from "@/assets/cat.png";
 import dogImg from "@/assets/dog.png";
@@ -19,7 +19,22 @@ type Item = {
   answerIndex: number;
 };
 
-export function PlayTab({ pkg }: { pkg: LessonPackage }) {
+export type PlayAnswer = {
+  prompt: string;
+  picked: string;
+  correct: string;
+  isCorrect: boolean;
+};
+
+export type PlayResult = { score: number; total: number; answers: PlayAnswer[] };
+
+export function PlayTab({
+  pkg,
+  onFinish,
+}: {
+  pkg: LessonPackage;
+  onFinish?: (result: PlayResult) => void;
+}) {
   const { t } = useI18n();
   const dir = pkg.language === "ar" ? "rtl" : "ltr";
   const ar = pkg.language === "ar";
@@ -50,6 +65,7 @@ export function PlayTab({ pkg }: { pkg: LessonPackage }) {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [sound, setSound] = useState(true);
+  const answersRef = useRef<PlayAnswer[]>([]);
 
   if (!items.length) return <p className="text-muted-foreground">{t.noQuestions}</p>;
 
@@ -59,6 +75,15 @@ export function PlayTab({ pkg }: { pkg: LessonPackage }) {
   const choose = (i: number) => {
     if (picked !== null) return;
     setPicked(i);
+    answersRef.current = [
+      ...answersRef.current,
+      {
+        prompt: current.prompt,
+        picked: current.options[i] ?? "",
+        correct: current.options[current.answerIndex] ?? "",
+        isCorrect: i === current.answerIndex,
+      },
+    ];
     if (i === current.answerIndex) {
       setScore((s) => s + 1);
       playCorrect();
@@ -72,6 +97,11 @@ export function PlayTab({ pkg }: { pkg: LessonPackage }) {
     if (index + 1 >= items.length) {
       setFinished(true);
       playWin();
+      onFinish?.({
+        score: answersRef.current.filter((a) => a.isCorrect).length,
+        total: items.length,
+        answers: answersRef.current,
+      });
       return;
     }
     setIndex((i) => i + 1);
@@ -84,6 +114,7 @@ export function PlayTab({ pkg }: { pkg: LessonPackage }) {
     setPicked(null);
     setScore(0);
     setFinished(false);
+    answersRef.current = [];
   };
 
   if (finished) {
