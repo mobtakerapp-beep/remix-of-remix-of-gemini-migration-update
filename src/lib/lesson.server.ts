@@ -265,7 +265,7 @@ export function resolveAiConfigs(): AiConfig[] {
       provider: "lovable",
       url: "https://ai.gateway.lovable.dev/v1/chat/completions",
       key: lovableKey,
-      model: "google/gemini-3.6-flash",
+      model: "google/gemini-1.5-flash",
     });
   }
   const geminiKey = getRuntimeSecret("GEMINI_API_KEY");
@@ -274,7 +274,7 @@ export function resolveAiConfigs(): AiConfig[] {
       provider: "gemini",
       url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       key: geminiKey,
-      model: "gemini-3.6-flash",
+      model: "gemini-1.5-flash",
     });
   }
   if (configs.length === 0) {
