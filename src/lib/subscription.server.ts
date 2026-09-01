@@ -16,12 +16,10 @@ export type SubscriptionStatus = {
   remainingToday: number;
 };
 
-/** الحد اليومي للناس العادية بقى 3 دروس بدل 1 */
 const FREE_DAILY_LIMIT = 3;
-const PAID_LIMIT = 999999; // رقم كبير عشان يبقى الحساب بلا حدود
+const PAID_LIMIT = 999999;
 
 function isSameDay(a: Date, b: Date) {
-  // الكود القديم كان بيصفر العداد كل شهر، صلحته هنا عشان يصفر كل يوم بجد
   return (
     a.getUTCFullYear() === b.getUTCFullYear() &&
     a.getUTCMonth() === b.getUTCMonth() &&
@@ -51,8 +49,10 @@ export async function getSubscriptionStatus(
   const profile = profileResult.data;
   const email = userResult.data?.user?.email ?? "";
 
-  // 👈 هنا استثناء مروة (الـ VIP) .. غيري الإيميل ده لإيميلك الحقيقي
-  const isVIP = email === "uuxz272@gmail.com";
+  // 👈 التحقق المزدوج بالأيقونة والإيميل والـ ID لضمان التطابق التام
+  const isVIP = 
+    email === "uuxz272@gmail.com" || 
+    userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
 
   const now = new Date();
   let plan: "free" | "monthly" | "yearly" = "free";
@@ -67,13 +67,11 @@ export async function getSubscriptionStatus(
     generationsUsed = sub.generations_used ?? 0;
     resetAt = new Date(sub.reset_at ?? now.toISOString());
 
-    // لو الإيميل بتاعك، خلي الباقة دايماً مدفوعة والحد مفتوح
     if (isVIP) {
       plan = "yearly";
       status = "active";
       generationsLimit = PAID_LIMIT;
     } else {
-      // حساب الناس العادية
       if (plan !== "free" && sub.expires_at) {
         const expiry = new Date(sub.expires_at);
         if (expiry < now) {
@@ -90,7 +88,6 @@ export async function getSubscriptionStatus(
       }
     }
 
-    // تصفير العداد لو اليوم اتغير
     if (!isSameDay(resetAt, now)) {
       generationsUsed = 0;
       await supabase
@@ -119,6 +116,18 @@ export async function incrementGenerationUsage(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
+  const email = user.user?.email ?? "";
+
+  // 👈 الحماية هنا كمان: لو إنتي أو الـ ID بتاعك، ما تزودش العداد ولا تعمل أي حاجة!
+  const isVIP = 
+    email === "uuxz272@gmail.com" || 
+    userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
+
+  if (isVIP) {
+    return; // اخرج فوراً وما تسجلش أي استهلاك لحسابك
+  }
+
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("*")
