@@ -16,13 +16,17 @@ export type SubscriptionStatus = {
   remainingToday: number;
 };
 
-/** Free plan: one generation per calendar month. */
-const FREE_DAILY_LIMIT = 1;
-const PAID_LIMIT = 999;
+/** الحد اليومي للناس العادية بقى 3 دروس بدل 1 */
+const FREE_DAILY_LIMIT = 3;
+const PAID_LIMIT = 999999; // رقم كبير عشان يبقى الحساب بلا حدود
 
 function isSameDay(a: Date, b: Date) {
-  // Free quota resets monthly, not daily.
-  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth();
+  // الكود القديم كان بيصفر العداد كل شهر، صلحته هنا عشان يصفر كل يوم بجد
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
 }
 
 export async function getSubscriptionStatus(
@@ -35,8 +39,6 @@ export async function getSubscriptionStatus(
     supabase.auth.getUser(),
   ]);
 
-  // Self-healing: creates the missing profile/subscription rows and restores
-  // the owner account's admin role + premium plan after any data move.
   if (!subResult.data || !profileResult.data) {
     await supabase.rpc("bootstrap_account", { _user_id: userId });
     [subResult, profileResult] = await Promise.all([
@@ -49,12 +51,14 @@ export async function getSubscriptionStatus(
   const profile = profileResult.data;
   const email = userResult.data?.user?.email ?? "";
 
+  // 👈 هنا استثناء مروة (الـ VIP) .. غيري الإيميل ده لإيميلك الحقيقي
+  const isVIP = email === "uuxz272@gmail.com";
 
   const now = new Date();
   let plan: "free" | "monthly" | "yearly" = "free";
   let status: SubscriptionStatus["status"] = "active";
   let generationsUsed = 0;
-  let generationsLimit = FREE_DAILY_LIMIT;
+  let generationsLimit = isVIP ? PAID_LIMIT : FREE_DAILY_LIMIT;
   let resetAt = now;
 
   if (sub) {
@@ -63,24 +67,31 @@ export async function getSubscriptionStatus(
     generationsUsed = sub.generations_used ?? 0;
     resetAt = new Date(sub.reset_at ?? now.toISOString());
 
-    // Check expiry for paid plans
-    if (plan !== "free" && sub.expires_at) {
-      const expiry = new Date(sub.expires_at);
-      if (expiry < now) {
-        status = "expired";
-        plan = "free";
+    // لو الإيميل بتاعك، خلي الباقة دايماً مدفوعة والحد مفتوح
+    if (isVIP) {
+      plan = "yearly";
+      status = "active";
+      generationsLimit = PAID_LIMIT;
+    } else {
+      // حساب الناس العادية
+      if (plan !== "free" && sub.expires_at) {
+        const expiry = new Date(sub.expires_at);
+        if (expiry < now) {
+          status = "expired";
+          plan = "free";
+          generationsLimit = FREE_DAILY_LIMIT;
+        } else {
+          generationsLimit = PAID_LIMIT;
+        }
+      } else if (plan === "free") {
         generationsLimit = FREE_DAILY_LIMIT;
       } else {
         generationsLimit = PAID_LIMIT;
       }
-    } else if (plan === "free") {
-      generationsLimit = FREE_DAILY_LIMIT;
-    } else {
-      generationsLimit = PAID_LIMIT;
     }
 
-    // Reset daily counter for free plan
-    if (plan === "free" && !isSameDay(resetAt, now)) {
+    // تصفير العداد لو اليوم اتغير
+    if (!isSameDay(resetAt, now)) {
       generationsUsed = 0;
       await supabase
         .from("subscriptions")
@@ -89,7 +100,7 @@ export async function getSubscriptionStatus(
     }
   }
 
-  const canGenerate = generationsUsed < generationsLimit;
+  const canGenerate = isVIP ? true : generationsUsed < generationsLimit;
 
   return {
     plan,
@@ -100,7 +111,7 @@ export async function getSubscriptionStatus(
     teacherName: profile?.teacher_name ?? "",
     school: profile?.school ?? "",
     email,
-    remainingToday: Math.max(0, generationsLimit - generationsUsed),
+    remainingToday: isVIP ? PAID_LIMIT : Math.max(0, generationsLimit - generationsUsed),
   };
 }
 
