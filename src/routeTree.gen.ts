@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyLessonsRouteImport } from './routes/my-lessons'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ResultsRouteImport } from './routes/results'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscribeRouteImport } from './routes/subscribe'
@@ -51,6 +52,11 @@ const MyLessonsRoute = MyLessonsRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SigninRoute = SigninRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-lessons': typeof MyLessonsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/results': typeof ResultsRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/subscribe': typeof SubscribeRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-lessons': typeof MyLessonsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/results': typeof ResultsRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/subscribe': typeof SubscribeRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-lessons': typeof MyLessonsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/results': typeof ResultsRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/subscribe': typeof SubscribeRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-lessons'
     | '/reset-password'
+    | '/results'
     | '/signin'
     | '/signup'
     | '/subscribe'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-lessons'
     | '/reset-password'
+    | '/results'
     | '/signin'
     | '/signup'
     | '/subscribe'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-lessons'
     | '/reset-password'
+    | '/results'
     | '/signin'
     | '/signup'
     | '/subscribe'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MyLessonsRoute: typeof MyLessonsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ResultsRoute: typeof ResultsRoute
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
   SubscribeRoute: typeof SubscribeRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signin': {
@@ -310,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MyLessonsRoute: MyLessonsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ResultsRoute: ResultsRoute,
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
   SubscribeRoute: SubscribeRoute,
