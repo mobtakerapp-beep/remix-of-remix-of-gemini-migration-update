@@ -38,7 +38,7 @@ export type Database = {
           id?: string
           max_uses?: number
           note?: string | null
-          plan: string
+          plan?: string
           used_count?: number
         }
         Update: {
@@ -87,6 +87,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lesson_share_results: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          score: number
+          share_token: string
+          student_name: string
+          total: number
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          score?: number
+          share_token: string
+          student_name: string
+          total?: number
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          score?: number
+          share_token?: string
+          student_name?: string
+          total?: number
+        }
+        Relationships: []
       }
       lesson_shares: {
         Row: {
@@ -148,7 +178,6 @@ export type Database = {
           plan: string
           reset_at: string
           status: string
-          updated_at: string
           user_id: string
         }
         Insert: {
@@ -159,7 +188,6 @@ export type Database = {
           plan?: string
           reset_at?: string
           status?: string
-          updated_at?: string
           user_id: string
         }
         Update: {
@@ -170,34 +198,6 @@ export type Database = {
           plan?: string
           reset_at?: string
           status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_lessons: {
-        Row: {
-          created_at: string
-          id: string
-          package: Json
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          package: Json
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          package?: Json
-          title?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -228,12 +228,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bootstrap_account: {
-        Args: { _school?: string; _teacher_name?: string; _user_id: string }
-        Returns: undefined
-      }
-      ensure_fixed_admin: { Args: { _user_id: string }; Returns: undefined }
-      fixed_admin_email: { Args: never; Returns: string }
+      bootstrap_account: { Args: { _user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -241,7 +236,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_fixed_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
