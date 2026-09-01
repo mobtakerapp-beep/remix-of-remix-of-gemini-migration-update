@@ -144,7 +144,7 @@ function ResultsPage() {
                     )}
                   </li>
                 ))}
-              </ol>
+              </ul>
             )}
           </Card>
         ))}
