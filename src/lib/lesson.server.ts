@@ -258,6 +258,7 @@ export function resolveAiConfigs(): AiConfig[] {
       url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
       key: geminiKey,
       model: "gemini-3.6-flash",
+      multimodal: true,
     });
   }
 
@@ -269,6 +270,8 @@ export function resolveAiConfigs(): AiConfig[] {
       url: "https://api.groq.com/openai/v1/chat/completions",
       key: groqKey,
       model: "llama-3.3-70b-versatile",
+      // Text-only model: it cannot read images/PDF attachments.
+      multimodal: false,
     });
   }
 
@@ -280,6 +283,7 @@ export function resolveAiConfigs(): AiConfig[] {
       url: "https://openrouter.ai/api/v1/chat/completions",
       key: openRouterKey,
       model: "google/gemini-2.5-flash",
+      multimodal: true,
     });
   }
 
