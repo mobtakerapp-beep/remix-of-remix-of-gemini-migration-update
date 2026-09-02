@@ -383,17 +383,33 @@ export async function buildLessonPackage(
                 max_tokens: 16000,
               },
         ),
-      });
+        });
+      } catch (networkError) {
+        // Network/DNS failure: retry once, then move to the next provider.
+        lastError = networkError instanceof Error ? networkError.message : "Network error";
+        if (attempt === 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
 
       if (response.ok) {
-        const json = (await response.json()) as {
+        const json = (await response.json().catch(() => ({}))) as {
           choices?: Array<{ message?: { content?: string } }>;
           candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
         };
         const text = isGemini
           ? (json.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("")
           : (json.choices?.[0]?.message?.content ?? "");
-        if (text.trim()) return normalize(extractJson(text), data);
+        if (text.trim()) {
+          try {
+            return normalize(extractJson(text), data);
+          } catch (parseError) {
+            // Unparsable/unusable output: retry once, then fall back to the next provider.
+            lastError = parseError instanceof Error ? parseError.message : "AI response could not be read.";
+            if (attempt === 1) break;
+            continue;
+          }
+        }
         lastError = "أعاد مزود الذكاء الاصطناعي استجابة فارغة.";
         break;
       }
