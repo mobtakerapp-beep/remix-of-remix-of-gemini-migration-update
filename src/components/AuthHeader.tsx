@@ -1,4 +1,4 @@
-import { LogIn, User } from "lucide-react";
+import { LogIn, Trophy, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
@@ -53,5 +53,15 @@ export function AuthHeader() {
     );
   }
 
-  return <SubscriptionBadge />;
+  return (
+    <div className="flex items-center gap-2">
+      <Button asChild variant="outline" size="sm" className="rounded-full text-xs">
+        <Link to="/results">
+          <Trophy className="me-1 size-3.5" />
+          {ar ? "نتائج الطلبة" : "Student results"}
+        </Link>
+      </Button>
+      <SubscriptionBadge />
+    </div>
+  );
 }
