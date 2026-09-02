@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Home, Loader2, Trophy, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -122,8 +122,8 @@ function ResultsPage() {
                   </thead>
                   <tbody>
                     {s.results.map((r, idx) => (
-                      <>
-                        <tr key={r.id} className="border-t border-border">
+                      <Fragment key={r.id}>
+                        <tr className="border-t border-border">
                           <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                           <td className="px-3 py-2 font-semibold">{r.studentName}</td>
                           <td className="px-3 py-2 font-bold text-emerald">
@@ -152,7 +152,7 @@ function ResultsPage() {
                           </td>
                         </tr>
                         {open === r.id && (
-                          <tr key={`${r.id}-details`} className="border-t border-border bg-muted/30">
+                          <tr className="border-t border-border bg-muted/30">
                             <td colSpan={6} className="px-3 py-3">
                               <ol className="space-y-2 text-sm">
                                 {r.answers.map((a, i) => (
@@ -180,7 +180,7 @@ function ResultsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
