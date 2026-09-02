@@ -243,6 +243,8 @@ export type AiConfig = {
   url: string;
   key: string;
   model: string;
+  /** Can this provider/model read images and PDFs, not just text? */
+  multimodal: boolean;
 };
 
 export function resolveAiConfigs(): AiConfig[] {
