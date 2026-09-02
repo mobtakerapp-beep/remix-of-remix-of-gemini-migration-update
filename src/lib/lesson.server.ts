@@ -58,7 +58,6 @@ function buildPrompt(data: Input) {
 
   const gradeRule = `The learners are in school grade ${data.grade} (of 12). Match vocabulary, sentence length, reasoning depth and difficulty exactly to grade ${data.grade}: very short simple concrete wording for grades 1-3, clear everyday language with light reasoning for grades 4-6, more analysis and precise terminology for grades 7-9, and demanding multi-step / analytical questions for grades 10-12.`;
 
-  // Randomized variety seed so each generation is different
   const seed = Math.floor(Math.random() * 1_000_000);
   const bloomPicks = pickRandom(BLOOM_LEVELS, Math.min(5, data.counts.mcq));
   const stylePicks = pickRandom(QUESTION_STYLES, Math.min(7, data.counts.mcq + data.counts.trueFalse));
@@ -94,13 +93,11 @@ Return ONLY a JSON object with this exact shape (no markdown fences):
 {"title":string,"summary":string,"summaryPoints":string[],"summarySections":[{"heading":string,"points":[{"text":string,"subPoints":string[]}]}],"highlights":string[],"language":"ar"|"en","mcqs":[{"question":string,"options":string[],"answerIndex":number}],"trueFalse":[{"statement":string,"answer":boolean}],"flashcards":[{"term":string,"definition":string}]}`;
 }
 
-// Repairs JSON that was cut off mid-generation (token limit) by closing any
-// open string, dropping a dangling fragment, and balancing brackets.
 function repairTruncatedJson(text: string): string {
   const stack: string[] = [];
   let inString = false;
   let escaped = false;
-  let lastSafe = -1; // index after the last complete value inside a container
+  let lastSafe = -1;
 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]!;
@@ -121,7 +118,6 @@ function repairTruncatedJson(text: string): string {
   let out = text;
   if (inString || (stack.length > 0 && lastSafe >= 0)) {
     out = text.slice(0, lastSafe + 1);
-    // recompute open brackets for the truncated slice
     stack.length = 0;
     let s = false;
     let e = false;
@@ -166,7 +162,6 @@ function extractJson(raw: string): unknown {
     }
   }
 }
-
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function normalize(parsed: any, data: Input): LessonPackage {
@@ -243,48 +238,56 @@ function normalize(parsed: any, data: Input): LessonPackage {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-/**
- * Resolve which AI backend to use. On Lovable Cloud the managed
- * LOVABLE_API_KEY is present; on external deploys (e.g. a standalone
- * Cloudflare Worker) it is not, so we fall back to Google Gemini.
- */
 export type AiConfig = {
-  provider: "lovable" | "gemini";
+  provider: "gemini" | "groq" | "openrouter";
   url: string;
   key: string;
   model: string;
 };
 
-/** Return every configured provider in priority order, so one provider's
- * quota/rate limit never prevents an external deployment using the other. */
 export function resolveAiConfigs(): AiConfig[] {
   const configs: AiConfig[] = [];
-  const lovableKey = getRuntimeSecret("LOVABLE_API_KEY");
-  if (lovableKey) {
-    configs.push({
-      provider: "lovable",
-      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
-      key: lovableKey,
-      model: "google/gemini-3.6-flash",
-    });
-  }
+
+  // 1. Gemini (Primary)
   const geminiKey = getRuntimeSecret("GEMINI_API_KEY");
   if (geminiKey) {
     configs.push({
       provider: "gemini",
-      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
       key: geminiKey,
       model: "gemini-3.6-flash",
     });
   }
+
+  // 2. Groq (First Fallback)
+  const groqKey = getRuntimeSecret("GROQ_API_KEY");
+  if (groqKey) {
+    configs.push({
+      provider: "groq",
+      url: "https://api.groq.com/openai/v1/chat/completions",
+      key: groqKey,
+      model: "llama-3.3-70b-versatile",
+    });
+  }
+
+  // 3. OpenRouter (Second Fallback)
+  const openRouterKey = getRuntimeSecret("OPENROUTER_API_KEY");
+  if (openRouterKey) {
+    configs.push({
+      provider: "openrouter",
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      key: openRouterKey,
+      model: "google/gemini-2.5-flash",
+    });
+  }
+
   if (configs.length === 0) {
     throw new Error(
-      "مفتاح الذكاء الاصطناعي غير متاح للسيرفر. أضف GEMINI_API_KEY كـ Secret binding ثم أعد نشر الـWorker.",
+      "مفتاح الذكاء الاصطناعي غير متاح للسيرفر. أضف GEMINI_API_KEY أو GROQ_API_KEY كـ Secret binding في Cloudflare.",
     );
   }
   return configs;
 }
-
 
 export async function buildLessonPackage(
   data: Input,
@@ -326,8 +329,6 @@ export async function buildLessonPackage(
     };
   });
 
-  // Google Gemini's native REST shape (used for the direct GEMINI_API_KEY path,
-  // because it accepts PDFs and images as inline_data).
   const geminiParts = parts.map((part) => {
     if (part.type === "text") return { text: part.text };
     const dataUrl = part.type === "image_url" ? part.image_url.url : part.file.file_data;
@@ -343,19 +344,14 @@ export async function buildLessonPackage(
   let lastError = "تعذّر توليد الدرس الآن.";
   for (const ai of providers) {
     const isGemini = ai.provider === "gemini";
-    const url = isGemini
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${ai.model}:generateContent`
-      : ai.url;
-    // One delayed retry for transient failures, then continue to the next
-    // configured provider. There is deliberately no immediate retry loop.
     for (let attempt = 0; attempt < 2; attempt++) {
-      const response = await fetch(url, {
+      const response = await fetch(ai.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(isGemini
             ? { "x-goog-api-key": ai.key }
-            : { "Lovable-API-Key": ai.key, "X-Lovable-AIG-SDK": "direct-fetch" }),
+            : { Authorization: `Bearer ${ai.key}` }),
         },
         body: JSON.stringify(
           isGemini
@@ -392,14 +388,9 @@ export async function buildLessonPackage(
       lastError = detail.slice(0, 300) || `AI request failed (${response.status})`;
       const retryable = response.status === 429 || response.status >= 500;
       if (!retryable || attempt === 1) break;
-      const retryAfter = Number(response.headers.get("Retry-After"));
-      const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
-        ? Math.min(retryAfter * 1000, 10_000)
-        : 1200 + Math.floor(Math.random() * 500);
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-
 
   throw new Error(lastError);
 }
