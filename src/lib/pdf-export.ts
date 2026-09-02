@@ -118,7 +118,8 @@ export async function exportNodeToPdf(
 
 
   const { getIsPremium } = await import("@/lib/premium-flag");
-  const watermark = getIsPremium() ? null : "FREE COPY - Smart Lesson Craft";
+  const watermark = getIsPremium() ? null : "تصميم مروة أبوبكر / أكاديمية التعزيز";
+
 
   cuts.forEach((start, index) => {
     const end = cuts[index + 1] ?? canvas.height;
@@ -144,22 +145,45 @@ export async function exportNodeToPdf(
   });
 
   if (watermark) {
-    const doc = pdf as unknown as {
-      GState?: new (opts: { opacity: number }) => unknown;
-      setGState: (state: unknown) => void;
-    };
-    const pageCount = pdf.getNumberOfPages();
-    for (let page = 1; page <= pageCount; page++) {
-      pdf.setPage(page);
-      if (doc.GState) doc.setGState(new doc.GState({ opacity: 0.12 }));
-      pdf.setTextColor(120, 120, 120);
-      pdf.setFontSize(26);
-      for (let row = 0; row < 5; row++) {
-        pdf.text(watermark, pageWidth / 2, 40 + row * 55, { align: "center", angle: 30 });
+    // Drawn from a canvas so Arabic text keeps correct shaping.
+    const dpi = 4; // px per mm
+    const heightMm = 14;
+    const probe = document.createElement("canvas").getContext("2d");
+    const fontPx = Math.round(heightMm * dpi * 0.6);
+    const font = `700 ${fontPx}px "Cairo", "Tajawal", system-ui, sans-serif`;
+    if (probe) probe.font = font;
+    const widthMm = Math.max(40, (probe?.measureText(watermark).width ?? 300) / dpi + 6);
+    const c = document.createElement("canvas");
+    c.width = Math.round(widthMm * dpi);
+    c.height = Math.round(heightMm * dpi);
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      ctx.font = font;
+      ctx.fillStyle = "rgba(120,120,120,0.18)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(watermark, c.width / 2, c.height / 2);
+      const dataUrl = c.toDataURL("image/png");
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page++) {
+        pdf.setPage(page);
+        for (let row = 0; row < 5; row++) {
+          pdf.addImage(
+            dataUrl,
+            "PNG",
+            (pageWidth - widthMm) / 2,
+            30 + row * 55,
+            widthMm,
+            heightMm,
+            undefined,
+            "NONE",
+            -20,
+          );
+        }
       }
-      if (doc.GState) doc.setGState(new doc.GState({ opacity: 1 }));
     }
   }
+
 
   // Designer credit at the bottom of every page. Drawn from a canvas so
   // Arabic text keeps its correct shaping (the PDF core fonts cannot).
