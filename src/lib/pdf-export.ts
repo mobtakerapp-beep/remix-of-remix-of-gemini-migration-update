@@ -118,7 +118,8 @@ export async function exportNodeToPdf(
 
 
   const { getIsPremium } = await import("@/lib/premium-flag");
-  const watermark = getIsPremium() ? null : "FREE COPY - Smart Lesson Craft";
+  const watermark = getIsPremium() ? null : "تصميم مروة أبوبكر / أكاديمية التعزيز";
+
 
   cuts.forEach((start, index) => {
     const end = cuts[index + 1] ?? canvas.height;
