@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Home, Loader2, Trophy, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -98,54 +98,95 @@ function ResultsPage() {
                 {ar ? "لم يحلّ أحد هذا الدرس بعد." : "Nobody has played this lesson yet."}
               </p>
             ) : (
-              <ul className="mt-3 space-y-2">
-                {s.results.map((r) => (
-                  <li key={r.id} className="rounded-2xl border border-border p-3">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 text-start"
-                      onClick={() => setOpen(open === r.id ? null : r.id)}
-                    >
-                      <span className="font-semibold">{r.studentName}</span>
-                      <span className="flex items-center gap-3 text-sm">
-                        <span className="font-bold text-emerald">
-                          {r.score} / {r.total}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(r.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB")}
-                        </span>
-                      </span>
-                    </button>
-
-                    {open === r.id && (
-                      <ol className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
-                        {r.answers.map((a, i) => (
-                          <li key={`${r.id}-${i}`} className="flex items-start gap-2">
-                            {a.isCorrect ? (
-                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald" />
-                            ) : (
-                              <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-                            )}
-                            <div>
-                              <p className="font-medium">{a.prompt}</p>
-                              <p className="text-muted-foreground">
-                                {ar ? "إجابته:" : "Answer:"} {a.picked}
-                                {!a.isCorrect && (
-                                  <>
-                                    {" — "}
-                                    {ar ? "الصحيح:" : "Correct:"} {a.correct}
-                                  </>
-                                )}
-                              </p>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-3 overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/60 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-start font-semibold">#</th>
+                      <th className="px-3 py-2 text-start font-semibold">
+                        {ar ? "اسم الطالب" : "Student"}
+                      </th>
+                      <th className="px-3 py-2 text-start font-semibold">
+                        {ar ? "الدرجة" : "Score"}
+                      </th>
+                      <th className="px-3 py-2 text-start font-semibold">
+                        {ar ? "النسبة" : "%"}
+                      </th>
+                      <th className="px-3 py-2 text-start font-semibold">
+                        {ar ? "التاريخ" : "Date"}
+                      </th>
+                      <th className="px-3 py-2 text-start font-semibold">
+                        {ar ? "الإجابات" : "Answers"}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.results.map((r, idx) => (
+                      <Fragment key={r.id}>
+                        <tr className="border-t border-border">
+                          <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                          <td className="px-3 py-2 font-semibold">{r.studentName}</td>
+                          <td className="px-3 py-2 font-bold text-emerald">
+                            {r.score} / {r.total}
+                          </td>
+                          <td className="px-3 py-2">
+                            {r.total ? Math.round((r.score / r.total) * 100) : 0}%
+                          </td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            {new Date(r.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB")}
+                          </td>
+                          <td className="px-3 py-2">
+                            <button
+                              type="button"
+                              className="rounded-full border border-border px-3 py-1 text-xs font-semibold"
+                              onClick={() => setOpen(open === r.id ? null : r.id)}
+                            >
+                              {open === r.id
+                                ? ar
+                                  ? "إخفاء"
+                                  : "Hide"
+                                : ar
+                                  ? "عرض"
+                                  : "View"}
+                            </button>
+                          </td>
+                        </tr>
+                        {open === r.id && (
+                          <tr className="border-t border-border bg-muted/30">
+                            <td colSpan={6} className="px-3 py-3">
+                              <ol className="space-y-2 text-sm">
+                                {r.answers.map((a, i) => (
+                                  <li key={`${r.id}-${i}`} className="flex items-start gap-2">
+                                    {a.isCorrect ? (
+                                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald" />
+                                    ) : (
+                                      <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                                    )}
+                                    <div>
+                                      <p className="font-medium">{a.prompt}</p>
+                                      <p className="text-muted-foreground">
+                                        {ar ? "إجابته:" : "Answer:"} {a.picked}
+                                        {!a.isCorrect && (
+                                          <>
+                                            {" — "}
+                                            {ar ? "الصحيح:" : "Correct:"} {a.correct}
+                                          </>
+                                        )}
+                                      </p>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ol>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
+
           </Card>
         ))}
       </div>
