@@ -347,11 +347,19 @@ export async function buildLessonPackage(
     };
   });
 
+  const needsMultimodal = data.mode !== "text";
+  const usable = providers.filter((ai) => !needsMultimodal || ai.multimodal);
+  if (usable.length === 0) {
+    throw new Error("المزود المتاح لا يدعم قراءة الصور أو ملفات PDF. أضف GEMINI_API_KEY أو OPENROUTER_API_KEY.");
+  }
+
   let lastError = "تعذّر توليد الدرس الآن.";
-  for (const ai of providers) {
+  for (const ai of usable) {
     const isGemini = ai.provider === "gemini";
     for (let attempt = 0; attempt < 2; attempt++) {
-      const response = await fetch(ai.url, {
+      let response: Response;
+      try {
+        response = await fetch(ai.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
